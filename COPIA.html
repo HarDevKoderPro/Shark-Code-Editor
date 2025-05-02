@@ -176,6 +176,37 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // Configuración personalizada para el cierre de brackets
+      const closeBracketsConfig = {
+        pairs: "()[]{}''\"\"``",
+        closeBefore: ")]}'\":;>",
+        triples: "",
+        explode: "[]{}"
+      };
+
+      // Función para detectar si estamos dentro de un template literal
+      function isInsideTemplateLiteral(cm, cursor) {
+        const token = cm.getTokenAt(cursor);
+        return token.type === "string-2" || token.type === "string";
+      }
+
+      // Sobreescribimos el comportamiento de auto-cierre para llaves
+      const originalBracketHook = CodeMirror.commands.closeBracket;
+      CodeMirror.commands.closeBracket = function (cm) {
+        const cursor = cm.getCursor();
+        const line = cm.getLine(cursor.line);
+        const nextChar = line[cursor.ch];
+
+        if (isInsideTemplateLiteral(cm, cursor) && nextChar === '$') {
+          // Caso especial para ${ dentro de template literals
+          cm.replaceSelection("{");
+          return;
+        }
+
+        // Comportamiento normal para otros casos
+        originalBracketHook(cm);
+      };
+
       const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         mode: 'javascript',
         theme: 'blackboard',
@@ -183,7 +214,7 @@
         indentUnit: 4,
         tabSize: 4,
         lineWrapping: true,
-        autoCloseBrackets: true,
+        autoCloseBrackets: closeBracketsConfig,
         extraKeys: {
           'Ctrl-Enter': executeCode,
           'Cmd-Enter': executeCode,
@@ -191,7 +222,16 @@
           'Cmd-L': clearConsole,
           'Ctrl-Space': 'toggleComment',
           'Ctrl-F': formatCode,
-          'Cmd-F': formatCode
+          'Cmd-F': formatCode,
+          "'{'": function (cm) {
+            const cursor = cm.getCursor();
+            if (isInsideTemplateLiteral(cm, cursor)) {
+              cm.replaceSelection("{}", "end");
+              cm.setCursor({ line: cursor.line, ch: cursor.ch + 1 });
+            } else {
+              cm.replaceSelection("{", "end");
+            }
+          }
         }
       });
 

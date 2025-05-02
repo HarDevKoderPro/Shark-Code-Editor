@@ -4,13 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="shortcut icon" href="./Code.ico" type="image/x-icon">
   <title>Editor de Código Web</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/blackboard.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet" />
   <style>
-    /* (Todo el CSS original permanece exactamente igual) */
     body {
       margin: 0;
       padding: 0;
@@ -172,12 +170,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
 
-  <!-- Prettier -->
+  <!-- Prettier (JavaScript Formatter) -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // Configuración personalizada para el cierre de brackets
+      const closeBracketsConfig = {
+        pairs: "()[]{}''\"\"``",
+        closeBefore: ")]}'\":;>",
+        triples: "",
+        explode: "[]{}"
+      };
+
+      // Función para detectar si estamos dentro de un template literal
+      function isInsideTemplateLiteral(cm, cursor) {
+        const token = cm.getTokenAt(cursor);
+        return token.type === "string-2" || token.type === "string";
+      }
+
+      // Sobreescribimos el comportamiento de auto-cierre para llaves
+      const originalBracketHook = CodeMirror.commands.closeBracket;
+      CodeMirror.commands.closeBracket = function (cm) {
+        const cursor = cm.getCursor();
+        const line = cm.getLine(cursor.line);
+        const nextChar = line[cursor.ch];
+
+        if (isInsideTemplateLiteral(cm, cursor) && nextChar === '$') {
+          // Caso especial para ${ dentro de template literals
+          cm.replaceSelection("{");
+          return;
+        }
+
+        // Comportamiento normal para otros casos
+        originalBracketHook(cm);
+      };
+
       const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         mode: 'javascript',
         theme: 'blackboard',
@@ -185,7 +214,7 @@
         indentUnit: 4,
         tabSize: 4,
         lineWrapping: true,
-        autoCloseBrackets: true,
+        autoCloseBrackets: closeBracketsConfig,
         extraKeys: {
           'Ctrl-Enter': executeCode,
           'Cmd-Enter': executeCode,
@@ -193,7 +222,16 @@
           'Cmd-L': clearConsole,
           'Ctrl-Space': 'toggleComment',
           'Ctrl-F': formatCode,
-          'Cmd-F': formatCode
+          'Cmd-F': formatCode,
+          "'{'": function (cm) {
+            const cursor = cm.getCursor();
+            if (isInsideTemplateLiteral(cm, cursor)) {
+              cm.replaceSelection("{}", "end");
+              cm.setCursor({ line: cursor.line, ch: cursor.ch + 1 });
+            } else {
+              cm.replaceSelection("{", "end");
+            }
+          }
         }
       });
 
@@ -203,24 +241,6 @@
 
       runButton.addEventListener('click', executeCode);
       clearButton.addEventListener('click', clearConsole);
-
-      // === NUEVA FUNCIONALIDAD: Autocierre de llaves dentro de backticks ===
-      editor.on("beforeChange", function (cm, change) {
-        if (change.origin === "+input" && change.text[0] === "{") {
-          const pos = change.from;
-          const line = cm.getLine(pos.line);
-          const left = line.slice(0, pos.ch);
-          const right = line.slice(pos.ch);
-
-          const openBacktick = (left.match(/`/g) || []).length % 2 === 1;
-          const closeBacktick = (right.match(/`/g) || []).length % 2 === 1;
-
-          if (openBacktick && closeBacktick) {
-            change.update(change.from, change.to, ["{}", ""]);
-            cm.setCursor({ line: pos.line, ch: pos.ch + 1 });
-          }
-        }
-      });
 
       let isExecuting = false;
       let originalConsole = {};
