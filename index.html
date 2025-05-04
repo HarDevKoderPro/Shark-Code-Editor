@@ -165,20 +165,17 @@
     <div id="console"></div>
   </div>
 
-  <!-- CodeMirror -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 
-  <!-- Prettier (JavaScript Formatter) -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // Configuración personalizada para el cierre de brackets
       const closeBracketsConfig = {
         pairs: "()[]{}''\"\"``",
         closeBefore: ")]}'\":;>",
@@ -186,13 +183,11 @@
         explode: "[]{}"
       };
 
-      // Función para detectar si estamos dentro de un template literal
       function isInsideTemplateLiteral(cm, cursor) {
         const token = cm.getTokenAt(cursor);
         return token.type === "string-2" || token.type === "string";
       }
 
-      // Sobreescribimos el comportamiento de auto-cierre para llaves
       const originalBracketHook = CodeMirror.commands.closeBracket;
       CodeMirror.commands.closeBracket = function (cm) {
         const cursor = cm.getCursor();
@@ -200,12 +195,10 @@
         const nextChar = line[cursor.ch];
 
         if (isInsideTemplateLiteral(cm, cursor) && nextChar === '$') {
-          // Caso especial para ${ dentro de template literals
           cm.replaceSelection("{");
           return;
         }
 
-        // Comportamiento normal para otros casos
         originalBracketHook(cm);
       };
 
@@ -238,7 +231,6 @@
         }
       });
 
-      // Habilitar multicursor con Alt+Clic
       editor.on("mousedown", function (cm, event) {
         if (event.altKey && !event.ctrlKey && !event.metaKey) {
           const pos = cm.coordsChar({ top: event.clientY, left: event.clientX }, "page");
@@ -347,15 +339,28 @@
         };
       }
 
+      function formatObjectLiterals(code) {
+        return code.replace(/({\s*)([^}]+)(\s*})/g, (_, open, body, close) => {
+          const properties = body
+            .split(',')
+            .map(p => p.trim())
+            .filter(Boolean)
+            .map(p => `    ${p.replace(/\s*:\s*/g, ':')},`)
+            .join('\n');
+          return `${open}\n${properties}\n${close}`;
+        });
+      }
+
       function formatCode() {
         try {
           const code = editor.getValue();
-          const formatted = prettier.format(code, {
+          let formatted = prettier.format(code, {
             parser: "babel",
             plugins: prettierPlugins,
             singleQuote: true,
             semi: true
           });
+          formatted = formatObjectLiterals(formatted);
           editor.setValue(formatted);
         } catch (err) {
           console.error("Error al formatear el código:", err);

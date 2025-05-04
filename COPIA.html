@@ -170,6 +170,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 
   <!-- Prettier (JavaScript Formatter) -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
@@ -216,6 +217,7 @@
         tabSize: 4,
         lineWrapping: true,
         autoCloseBrackets: closeBracketsConfig,
+        matchBrackets: true,
         extraKeys: {
           'Ctrl-Enter': executeCode,
           'Cmd-Enter': executeCode,
@@ -233,6 +235,15 @@
               cm.replaceSelection("{", "end");
             }
           }
+        }
+      });
+
+      // Habilitar multicursor con Alt+Clic
+      editor.on("mousedown", function (cm, event) {
+        if (event.altKey && !event.ctrlKey && !event.metaKey) {
+          const pos = cm.coordsChar({ top: event.clientY, left: event.clientX }, "page");
+          cm.addSelection(pos);
+          event.preventDefault();
         }
       });
 
