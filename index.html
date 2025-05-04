@@ -350,12 +350,31 @@
       function formatCode() {
         try {
           const code = editor.getValue();
-          const formatted = prettier.format(code, {
+
+          // Primero aplicamos el formateo de Prettier
+          let formatted = prettier.format(code, {
             parser: "babel",
             plugins: prettierPlugins,
             singleQuote: true,
             semi: true
           });
+
+          // Luego aplicamos nuestro formateo personalizado para objetos literales
+          formatted = formatted.replace(/(let|const|var)\s+(\w+)\s*=\s*\{([^}]+)\};?/g, function (match, decl, name, content) {
+            // Formatear el contenido del objeto
+            const formattedContent = content
+              .split(',')
+              .map(prop => {
+                const trimmed = prop.trim();
+                if (!trimmed) return '';
+                return `\n    ${trimmed}`;
+              })
+              .filter(prop => prop !== '')
+              .join(',');
+
+            return `${decl} ${name} = {${formattedContent}\n};`;
+          });
+
           editor.setValue(formatted);
         } catch (err) {
           console.error("Error al formatear el código:", err);
