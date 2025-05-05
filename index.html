@@ -375,6 +375,16 @@
             return `${decl} ${name} = {${formattedContent}\n};`;
           });
 
+          // Formatear ternarios para mejor legibilidad
+          formatted = formatted.replace(/([^?]+\?[^:]+:[^?]+)/g, function (match) {
+            // Solo procesar si es un ternario anidado o largo
+            if (match.split('?').length > 2 || match.length > 60) {
+              return match.replace(/\s*\?\s*/g, ' \n  ? ')
+                .replace(/\s*:\s*/g, '\n  : ');
+            }
+            return match;
+          });
+
           editor.setValue(formatted);
         } catch (err) {
           console.error("Error al formatear el código:", err);
