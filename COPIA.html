@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet" />
   <link rel="shortcut icon" href="./Code.ico" type="image/x-icon">
   <style>
+    /* Estilos originales sin modificar */
     body {
       margin: 0;
       padding: 0;
@@ -145,13 +146,87 @@
         border-top: 1px solid #333;
       }
     }
+
+    /* Nuevos estilos agregados al final */
+    .menu-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .menu-title {
+      color: white;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .menu-options {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #252526;
+      border: 1px solid #333;
+      min-width: 200px;
+      z-index: 1000;
+    }
+
+    .menu-options.show {
+      display: block;
+    }
+
+    .menu-item {
+      color: white;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      white-space: nowrap;
+    }
+
+    .menu-item:hover {
+      background: #2a2d2e;
+    }
+
+    .menu-shortcut {
+      float: right;
+      color: #888;
+      margin-left: 20px;
+    }
+
+    .title-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
   </style>
 </head>
 
 <body>
 
   <div class="button-bar">
-    <span style="color: white; font-weight: bold;">🦈 Shark Code Editor by Ing Harold David Valdés 🦈</span>
+    <div class="title-container">
+      <div class="menu-container" id="file-menu">
+        <div class="menu-title">Archivo</div>
+        <div class="menu-options">
+          <div class="menu-item" id="new-file">
+            Nuevo<span class="menu-shortcut">Ctrl+N</span>
+          </div>
+          <div class="menu-item" id="open-file">
+            Abrir<span class="menu-shortcut">Ctrl+O</span>
+          </div>
+          <div class="menu-item" id="save-file">
+            Guardar<span class="menu-shortcut">Ctrl+S</span>
+          </div>
+          <div class="menu-item" id="save-as-file">
+            Guardar como<span class="menu-shortcut">Ctrl+Shift+S</span>
+          </div>
+          <div class="menu-item" id="close-file">
+            Cerrar<span class="menu-shortcut">Ctrl+W</span>
+          </div>
+        </div>
+      </div>
+      <span style="color: white; font-weight: bold;">🦈 Shark Code Editor by Ing Harold David Valdés 🦈</span>
+    </div>
     <div>
       <button id="clear-btn">Limpiar (Ctrl+L)</button>
       <button id="run-btn">Ejecutar (Ctrl+Enter)</button>
@@ -177,8 +252,10 @@
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
   <script>
+    let currentFileHandle = null;
+
     document.addEventListener('DOMContentLoaded', function () {
-      // Configuración personalizada para el cierre de brackets
+      // Configuración original de CodeMirror...
       const closeBracketsConfig = {
         pairs: "()[]{}''\"\"``",
         closeBefore: ")]}'\":;>",
@@ -186,13 +263,11 @@
         explode: "[]{}"
       };
 
-      // Función para detectar si estamos dentro de un template literal
       function isInsideTemplateLiteral(cm, cursor) {
         const token = cm.getTokenAt(cursor);
         return token.type === "string-2" || token.type === "string";
       }
 
-      // Sobreescribimos el comportamiento de auto-cierre para llaves
       const originalBracketHook = CodeMirror.commands.closeBracket;
       CodeMirror.commands.closeBracket = function (cm) {
         const cursor = cm.getCursor();
@@ -200,12 +275,10 @@
         const nextChar = line[cursor.ch];
 
         if (isInsideTemplateLiteral(cm, cursor) && nextChar === '$') {
-          // Caso especial para ${ dentro de template literals
           cm.replaceSelection("{");
           return;
         }
 
-        // Comportamiento normal para otros casos
         originalBracketHook(cm);
       };
 
@@ -238,7 +311,6 @@
         }
       });
 
-      // Habilitar multicursor con Alt+Clic
       editor.on("mousedown", function (cm, event) {
         if (event.altKey && !event.ctrlKey && !event.metaKey) {
           const pos = cm.coordsChar({ top: event.clientY, left: event.clientX }, "page");
@@ -257,6 +329,7 @@
       let isExecuting = false;
       let originalConsole = {};
 
+      // Funciones originales del editor...
       function clearConsole() {
         consoleElement.innerHTML = '';
       }
@@ -350,8 +423,6 @@
       function formatCode() {
         try {
           const code = editor.getValue();
-
-          // Primero aplicamos el formateo de Prettier
           let formatted = prettier.format(code, {
             parser: "babel",
             plugins: prettierPlugins,
@@ -359,15 +430,12 @@
             semi: true
           });
 
-          // Luego aplicamos nuestro formateo personalizado para objetos literales
           formatted = formatted.replace(/(let|const|var)\s+(\w+)\s*=\s*\{([^}]+)\};?/g, function (match, decl, name, content) {
-            // Formatear el contenido del objeto
             const formattedContent = content
               .split(',')
               .map(prop => {
                 const trimmed = prop.trim();
-                if (!trimmed) return '';
-                return `\n    ${trimmed}`;
+                return trimmed ? `\n    ${trimmed}` : '';
               })
               .filter(prop => prop !== '')
               .join(',');
@@ -375,9 +443,7 @@
             return `${decl} ${name} = {${formattedContent}\n};`;
           });
 
-          // Formatear ternarios para mejor legibilidad
           formatted = formatted.replace(/([^?]+\?[^:]+:[^?]+)/g, function (match) {
-            // Solo procesar si es un ternario anidado o largo
             if (match.split('?').length > 2 || match.length > 60) {
               return match.replace(/\s*\?\s*/g, ' \n  ? ')
                 .replace(/\s*:\s*/g, '\n  : ');
@@ -389,6 +455,114 @@
         } catch (err) {
           console.error("Error al formatear el código:", err);
         }
+      }
+
+      // Nuevas funciones de manejo de archivos
+      const fileMenu = document.getElementById('file-menu');
+      const menuOptions = fileMenu.querySelector('.menu-options');
+
+      fileMenu.addEventListener('click', () => {
+        menuOptions.classList.toggle('show');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!fileMenu.contains(e.target)) {
+          menuOptions.classList.remove('show');
+        }
+      });
+
+      document.getElementById('new-file').addEventListener('click', handleNewFile);
+      document.getElementById('open-file').addEventListener('click', handleOpenFile);
+      document.getElementById('save-file').addEventListener('click', handleSaveFile);
+      document.getElementById('save-as-file').addEventListener('click', handleSaveAsFile);
+      document.getElementById('close-file').addEventListener('click', handleCloseFile);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch (e.key.toLowerCase()) {
+            case 'n':
+              e.preventDefault();
+              handleNewFile();
+              break;
+            case 'o':
+              e.preventDefault();
+              handleOpenFile();
+              break;
+            case 's':
+              e.preventDefault();
+              if (e.shiftKey) {
+                handleSaveAsFile();
+              } else {
+                handleSaveFile();
+              }
+              break;
+            case 'w':
+              e.preventDefault();
+              handleCloseFile();
+              break;
+          }
+        }
+      });
+
+      async function handleNewFile() {
+        if (editor.getValue() && !confirm('¿Desea crear un nuevo archivo? Los cambios no guardados se perderán.')) return;
+        currentFileHandle = null;
+        editor.setValue('');
+        consoleElement.innerHTML = '';
+      }
+
+      async function handleOpenFile() {
+        try {
+          [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+              description: 'Archivos JavaScript',
+              accept: { 'text/javascript': ['.js'] }
+            }]
+          });
+
+          const file = await fileHandle.getFile();
+          const content = await file.text();
+          currentFileHandle = fileHandle;
+          editor.setValue(content);
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error('Error al abrir archivo:', err);
+        }
+      }
+
+      async function handleSaveFile() {
+        try {
+          if (!currentFileHandle) return handleSaveAsFile();
+          const writable = await currentFileHandle.createWritable();
+          await writable.write(editor.getValue());
+          await writable.close();
+        } catch (err) {
+          console.error('Error al guardar archivo:', err);
+        }
+      }
+
+      async function handleSaveAsFile() {
+        try {
+          const newHandle = await window.showSaveFilePicker({
+            types: [{
+              description: 'Archivos JavaScript',
+              accept: { 'text/javascript': ['.js'] }
+            }]
+          });
+
+          const writable = await newHandle.createWritable();
+          await writable.write(editor.getValue());
+          await writable.close();
+          currentFileHandle = newHandle;
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error('Error al guardar archivo:', err);
+        }
+      }
+
+      function handleCloseFile() {
+        if (editor.getValue() && !confirm('¿Desea cerrar el archivo? Los cambios no guardados se perderán.')) return;
+        currentFileHandle = null;
+        editor.setValue('');
+        consoleElement.innerHTML = '';
       }
     });
   </script>
