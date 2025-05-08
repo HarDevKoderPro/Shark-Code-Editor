@@ -253,6 +253,8 @@
 
   <script>
     let currentFileHandle = null;
+    let saveTimeout = null;
+    const SAVE_DELAY = 2000; // 2 segundos de retraso para el guardado automático
 
     document.addEventListener('DOMContentLoaded', function () {
       // Configuración original de CodeMirror...
@@ -310,6 +312,26 @@
           }
         }
       });
+
+      // Función debounce para el guardado automático
+      function debounceSave() {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        saveTimeout = setTimeout(async () => {
+          if (currentFileHandle) {
+            try {
+              await handleSaveFile();
+              console.log('Guardado automático realizado');
+            } catch (err) {
+              console.error('Error en guardado automático:', err);
+            }
+          }
+        }, SAVE_DELAY);
+      }
+
+      // Escuchar cambios en el editor para guardado automático
+      editor.on('change', debounceSave);
 
       editor.on("mousedown", function (cm, event) {
         if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -509,6 +531,8 @@
         currentFileHandle = null;
         editor.setValue('');
         consoleElement.innerHTML = '';
+        // Llamar directamente a handleSaveAsFile para abrir el diálogo de guardar
+        await handleSaveAsFile();
       }
 
       async function handleOpenFile() {
