@@ -50,7 +50,7 @@
     #console {
       flex: 0 0 30%;
       background: #0C0C0C;
-      color: #D4D4D4;
+      color: #0db156;
       padding: 10px;
       overflow-y: auto;
       font-family: 'JetBrains Mono', monospace;
@@ -154,10 +154,11 @@
     }
 
     .menu-title {
-      color: white;
+      color: rgb(186, 189, 189);
       padding: 8px 16px;
       cursor: pointer;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-weight: 600;
     }
 
     .menu-options {
@@ -198,6 +199,27 @@
       align-items: center;
       gap: 20px;
     }
+
+    /* Estilo para el nombre del archivo */
+    .filename-display {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 16px;
+      margin-left: 10px;
+      font-weight: bold;
+      /* Negrita para todos los nombres */
+    }
+
+    .filename-display.unsaved {
+      color: #f0732a9d;
+      /* Color gris para untitled */
+      font-style: italic;
+    }
+
+    .filename-display.saved {
+      color: #4EC9B0;
+      /* Verde para archivos guardados */
+      font-style: italic;
+    }
   </style>
 </head>
 
@@ -225,7 +247,8 @@
           </div>
         </div>
       </div>
-      <span style="color: white; font-weight: bold;">🦈 Shark Code Editor by Ing Harold David Valdés 🦈</span>
+      <span style="color: rgb(102, 152, 218); font-weight: bold;">🦈 Shark Code Editor by Ing Harold Valdés 🦈</span>
+      <span id="filename-display" class="filename-display unsaved"></span>
     </div>
     <div>
       <button id="clear-btn">Limpiar (Ctrl+L)</button>
@@ -255,6 +278,8 @@
     let currentFileHandle = null;
     let saveTimeout = null;
     const SAVE_DELAY = 2000; // 2 segundos de retraso para el guardado automático
+    let originalContent = ''; // Para comparar cambios
+    let filenameDisplay = document.getElementById('filename-display');
 
     document.addEventListener('DOMContentLoaded', function () {
       // Configuración original de CodeMirror...
@@ -313,6 +338,23 @@
         }
       });
 
+      // Función para actualizar el nombre del archivo mostrado
+      function updateFilenameDisplay() {
+        if (!currentFileHandle) {
+          filenameDisplay.textContent = 'untitled';
+          filenameDisplay.className = 'filename-display unsaved';
+          return;
+        }
+
+        const filename = currentFileHandle.name;
+        const hasUnsavedChanges = editor.getValue() !== originalContent;
+
+        filenameDisplay.textContent = filename + (hasUnsavedChanges ? ' *' : '');
+        filenameDisplay.className = hasUnsavedChanges
+          ? 'filename-display unsaved'
+          : 'filename-display saved';
+      }
+
       // Función debounce para el guardado automático
       function debounceSave() {
         if (saveTimeout) {
@@ -331,7 +373,10 @@
       }
 
       // Escuchar cambios en el editor para guardado automático
-      editor.on('change', debounceSave);
+      editor.on('change', () => {
+        debounceSave();
+        updateFilenameDisplay();
+      });
 
       editor.on("mousedown", function (cm, event) {
         if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -529,8 +574,10 @@
       async function handleNewFile() {
         if (editor.getValue() && !confirm('¿Desea crear un nuevo archivo? Los cambios no guardados se perderán.')) return;
         currentFileHandle = null;
+        originalContent = '';
         editor.setValue('');
         consoleElement.innerHTML = '';
+        updateFilenameDisplay();
         // Llamar directamente a handleSaveAsFile para abrir el diálogo de guardar
         await handleSaveAsFile();
       }
@@ -547,7 +594,9 @@
           const file = await fileHandle.getFile();
           const content = await file.text();
           currentFileHandle = fileHandle;
+          originalContent = content;
           editor.setValue(content);
+          updateFilenameDisplay();
         } catch (err) {
           if (err.name !== 'AbortError') console.error('Error al abrir archivo:', err);
         }
@@ -556,9 +605,12 @@
       async function handleSaveFile() {
         try {
           if (!currentFileHandle) return handleSaveAsFile();
+          const content = editor.getValue();
           const writable = await currentFileHandle.createWritable();
-          await writable.write(editor.getValue());
+          await writable.write(content);
           await writable.close();
+          originalContent = content;
+          updateFilenameDisplay();
         } catch (err) {
           console.error('Error al guardar archivo:', err);
         }
@@ -573,10 +625,13 @@
             }]
           });
 
+          const content = editor.getValue();
           const writable = await newHandle.createWritable();
-          await writable.write(editor.getValue());
+          await writable.write(content);
           await writable.close();
           currentFileHandle = newHandle;
+          originalContent = content;
+          updateFilenameDisplay();
         } catch (err) {
           if (err.name !== 'AbortError') console.error('Error al guardar archivo:', err);
         }
@@ -585,9 +640,14 @@
       function handleCloseFile() {
         if (editor.getValue() && !confirm('¿Desea cerrar el archivo? Los cambios no guardados se perderán.')) return;
         currentFileHandle = null;
+        originalContent = '';
         editor.setValue('');
         consoleElement.innerHTML = '';
+        updateFilenameDisplay();
       }
+
+      // Inicializar el display del nombre del archivo
+      updateFilenameDisplay();
     });
   </script>
 </body>
