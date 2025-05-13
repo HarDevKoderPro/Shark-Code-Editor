@@ -474,15 +474,37 @@
       function createLogger(type) {
         return function (...args) {
           originalConsole[type].apply(console, args);
-          const message = args.map(arg =>
-            typeof arg === 'object' && arg !== null
-              ? JSON.stringify(arg, null, 2)
-              : String(arg)
-          ).join(' ');
-          const div = document.createElement('div');
-          div.className = type;
-          div.textContent = `> ${message}`;
-          consoleElement.appendChild(div);
+
+          // Manejar expresiones typeof
+          if (args.length === 1 && typeof args[0] === 'string' && args[0].startsWith('typeof ')) {
+            try {
+              // Evaluar el tipo de dato de la expresión después de 'typeof'
+              const expression = args[0].substring(7); // Eliminar 'typeof '
+              const evaluatedType = typeof eval(expression);
+              const div = document.createElement('div');
+              div.className = type;
+              div.textContent = `> ${args[0]}: ${evaluatedType}`;
+              consoleElement.appendChild(div);
+            } catch (e) {
+              // Si hay error al evaluar, mostrar el mensaje original
+              const div = document.createElement('div');
+              div.className = type;
+              div.textContent = `> ${args[0]}`;
+              consoleElement.appendChild(div);
+            }
+          } else {
+            // Comportamiento normal para otros logs
+            const message = args.map(arg =>
+              typeof arg === 'object' && arg !== null
+                ? JSON.stringify(arg, null, 2)
+                : String(arg)
+            ).join(' ');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `> ${message}`;
+            consoleElement.appendChild(div);
+          }
+
           consoleElement.scrollTop = consoleElement.scrollHeight;
         };
       }
