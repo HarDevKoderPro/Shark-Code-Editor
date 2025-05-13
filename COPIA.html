@@ -10,7 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet" />
   <link rel="shortcut icon" href="./Code.ico" type="image/x-icon">
   <style>
-    /* Estilos originales sin modificar */
     body {
       margin: 0;
       padding: 0;
@@ -147,7 +146,6 @@
       }
     }
 
-    /* Nuevos estilos agregados al final */
     .menu-container {
       position: relative;
       display: inline-block;
@@ -200,55 +198,40 @@
       gap: 20px;
     }
 
-    /* Estilo para el nombre del archivo */
     .filename-display {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 16px;
       margin-left: 10px;
       font-weight: bold;
-      /* Negrita para todos los nombres */
     }
 
     .filename-display.unsaved {
       color: #f0732a9d;
-      /* Color gris para untitled */
       font-style: italic;
     }
 
     .filename-display.saved {
       color: #4EC9B0;
-      /* Verde para archivos guardados */
       font-style: italic;
     }
   </style>
 </head>
 
 <body>
-
   <div class="button-bar">
     <div class="title-container">
       <div class="menu-container" id="file-menu">
         <div class="menu-title">Archivo</div>
         <div class="menu-options">
-          <div class="menu-item" id="new-file">
-            Nuevo<span class="menu-shortcut"></span>
-          </div>
-          <div class="menu-item" id="open-file">
-            Abrir<span class="menu-shortcut">Ctrl+O</span>
-          </div>
-          <div class="menu-item" id="save-file">
-            Guardar<span class="menu-shortcut">Ctrl+S</span>
-          </div>
-          <div class="menu-item" id="save-as-file">
-            Guardar como<span class="menu-shortcut">Ctrl+Shift+S</span>
-          </div>
-          <div class="menu-item" id="close-file">
-            Cerrar<span class="menu-shortcut">Ctrl+W</span>
-          </div>
+          <div class="menu-item" id="new-file">Nuevo<span class="menu-shortcut"></span></div>
+          <div class="menu-item" id="open-file">Abrir<span class="menu-shortcut">Ctrl+O</span></div>
+          <div class="menu-item" id="save-file">Guardar<span class="menu-shortcut">Ctrl+S</span></div>
+          <div class="menu-item" id="save-as-file">Guardar como<span class="menu-shortcut">Ctrl+Shift+S</span></div>
+          <div class="menu-item" id="close-file">Cerrar<span class="menu-shortcut">Ctrl+W</span></div>
         </div>
       </div>
       <span style="color: rgb(102, 152, 218); font-weight: bold;">🦈 Shark Code Editor by Ing Harold Valdés 🦈</span>
-      <span id="filename-display" class="filename-display unsaved"></span>
+      <span id="filename-display" class="filename-display unsaved">untitled</span>
     </div>
     <div>
       <button id="clear-btn">Limpiar (Ctrl+L)</button>
@@ -263,26 +246,22 @@
     <div id="console"></div>
   </div>
 
-  <!-- CodeMirror -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
-
-  <!-- Prettier (JavaScript Formatter) -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
   <script>
     let currentFileHandle = null;
     let saveTimeout = null;
-    const SAVE_DELAY = 2000; // 2 segundos de retraso para el guardado automático
-    let originalContent = ''; // Para comparar cambios
+    const SAVE_DELAY = 2000;
+    let originalContent = '';
     let filenameDisplay = document.getElementById('filename-display');
 
     document.addEventListener('DOMContentLoaded', function () {
-      // Configuración original de CodeMirror...
       const closeBracketsConfig = {
         pairs: "()[]{}''\"\"``",
         closeBefore: ")]}'\":;>",
@@ -338,28 +317,20 @@
         }
       });
 
-      // Función para actualizar el nombre del archivo mostrado
       function updateFilenameDisplay() {
         if (!currentFileHandle) {
           filenameDisplay.textContent = 'untitled';
           filenameDisplay.className = 'filename-display unsaved';
           return;
         }
-
         const filename = currentFileHandle.name;
         const hasUnsavedChanges = editor.getValue() !== originalContent;
-
         filenameDisplay.textContent = filename + (hasUnsavedChanges ? ' *' : '');
-        filenameDisplay.className = hasUnsavedChanges
-          ? 'filename-display unsaved'
-          : 'filename-display saved';
+        filenameDisplay.className = hasUnsavedChanges ? 'filename-display unsaved' : 'filename-display saved';
       }
 
-      // Función debounce para el guardado automático
       function debounceSave() {
-        if (saveTimeout) {
-          clearTimeout(saveTimeout);
-        }
+        if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(async () => {
           if (currentFileHandle) {
             try {
@@ -372,7 +343,6 @@
         }, SAVE_DELAY);
       }
 
-      // Escuchar cambios en el editor para guardado automático
       editor.on('change', () => {
         debounceSave();
         updateFilenameDisplay();
@@ -396,7 +366,6 @@
       let isExecuting = false;
       let originalConsole = {};
 
-      // Funciones originales del editor...
       function clearConsole() {
         consoleElement.innerHTML = '';
       }
@@ -454,7 +423,11 @@
 
         try {
           const transformedCode = transformCode(code);
-          await eval(transformedCode);
+          const result = await eval(transformedCode);
+
+          if (result !== undefined && isSimpleExpression(code)) {
+            console.log(result);
+          }
         } catch (error) {
           console.error(`Error: ${error.message}`);
         } finally {
@@ -466,39 +439,49 @@
         }
       }
 
+      function isSimpleExpression(code) {
+        return /^[\s]*(?:[\w\d\s&|><!+-=*\/%^]+)[\s;]*$/.test(code) &&
+          !code.includes(';') &&
+          !code.includes('{') &&
+          !code.includes('}');
+      }
+
       function transformCode(code) {
         const safeCode = code.replace(/(?<!await\s)(prompt\s*\(.*?\))/g, 'await $1');
-        return `(async () => { ${safeCode} })();`;
+
+        if (isSimpleExpression(code)) {
+          return `(function() { try { return ${safeCode} } catch(e) { return e.message } })();`;
+        } else {
+          return `(async () => { ${safeCode} })();`;
+        }
       }
 
       function createLogger(type) {
         return function (...args) {
           originalConsole[type].apply(console, args);
 
-          // Manejar expresiones typeof
           if (args.length === 1 && typeof args[0] === 'string' && args[0].startsWith('typeof ')) {
             try {
-              // Evaluar el tipo de dato de la expresión después de 'typeof'
-              const expression = args[0].substring(7); // Eliminar 'typeof '
+              const expression = args[0].substring(7);
               const evaluatedType = typeof eval(expression);
               const div = document.createElement('div');
               div.className = type;
               div.textContent = `> ${args[0]}: ${evaluatedType}`;
               consoleElement.appendChild(div);
             } catch (e) {
-              // Si hay error al evaluar, mostrar el mensaje original
               const div = document.createElement('div');
               div.className = type;
               div.textContent = `> ${args[0]}`;
               consoleElement.appendChild(div);
             }
           } else {
-            // Comportamiento normal para otros logs
-            const message = args.map(arg =>
-              typeof arg === 'object' && arg !== null
+            const message = args.map(arg => {
+              if (arg === undefined) return 'undefined';
+              return typeof arg === 'object' && arg !== null
                 ? JSON.stringify(arg, null, 2)
-                : String(arg)
-            ).join(' ');
+                : String(arg);
+            }).join(' ');
+
             const div = document.createElement('div');
             div.className = type;
             div.textContent = `> ${message}`;
@@ -546,7 +529,6 @@
         }
       }
 
-      // Nuevas funciones de manejo de archivos
       const fileMenu = document.getElementById('file-menu');
       const menuOptions = fileMenu.querySelector('.menu-options');
 
@@ -569,26 +551,10 @@
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
           switch (e.key.toLowerCase()) {
-            case 'n':
-              e.preventDefault();
-              handleNewFile();
-              break;
-            case 'o':
-              e.preventDefault();
-              handleOpenFile();
-              break;
-            case 's':
-              e.preventDefault();
-              if (e.shiftKey) {
-                handleSaveAsFile();
-              } else {
-                handleSaveFile();
-              }
-              break;
-            case 'w':
-              e.preventDefault();
-              handleCloseFile();
-              break;
+            case 'n': e.preventDefault(); handleNewFile(); break;
+            case 'o': e.preventDefault(); handleOpenFile(); break;
+            case 's': e.preventDefault(); e.shiftKey ? handleSaveAsFile() : handleSaveFile(); break;
+            case 'w': e.preventDefault(); handleCloseFile(); break;
           }
         }
       });
@@ -600,8 +566,6 @@
         editor.setValue('');
         consoleElement.innerHTML = '';
         updateFilenameDisplay();
-        // Llamar directamente a handleSaveAsFile para abrir el diálogo de guardar
-        await handleSaveAsFile();
       }
 
       async function handleOpenFile() {
@@ -668,7 +632,6 @@
         updateFilenameDisplay();
       }
 
-      // Inicializar el display del nombre del archivo
       updateFilenameDisplay();
     });
   </script>
