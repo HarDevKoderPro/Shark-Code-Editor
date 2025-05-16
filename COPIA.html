@@ -566,6 +566,8 @@
         editor.setValue('');
         consoleElement.innerHTML = '';
         updateFilenameDisplay();
+        // Llamar a handleSaveAsFile para permitir al usuario guardar el nuevo archivo inmediatamente
+        await handleSaveAsFile();
       }
 
       async function handleOpenFile() {
