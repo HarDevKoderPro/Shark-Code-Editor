@@ -227,7 +227,6 @@
           <div class="menu-item" id="open-file">Abrir<span class="menu-shortcut">Ctrl+O</span></div>
           <div class="menu-item" id="save-file">Guardar<span class="menu-shortcut">Ctrl+S</span></div>
           <div class="menu-item" id="save-as-file">Guardar como<span class="menu-shortcut">Ctrl+Shift+S</span></div>
-          <div class="menu-item" id="close-file">Cerrar<span class="menu-shortcut">Ctrl+W</span></div>
         </div>
       </div>
       <span style="color: rgb(102, 152, 218); font-weight: bold;">🦈 Shark Code Editor by Ing Harold Valdés 🦈</span>
@@ -546,7 +545,6 @@
       document.getElementById('open-file').addEventListener('click', handleOpenFile);
       document.getElementById('save-file').addEventListener('click', handleSaveFile);
       document.getElementById('save-as-file').addEventListener('click', handleSaveAsFile);
-      document.getElementById('close-file').addEventListener('click', handleCloseFile);
 
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -554,7 +552,6 @@
             case 'n': e.preventDefault(); handleNewFile(); break;
             case 'o': e.preventDefault(); handleOpenFile(); break;
             case 's': e.preventDefault(); e.shiftKey ? handleSaveAsFile() : handleSaveFile(); break;
-            case 'w': e.preventDefault(); handleCloseFile(); break;
           }
         }
       });
@@ -623,15 +620,6 @@
         } catch (err) {
           if (err.name !== 'AbortError') console.error('Error al guardar archivo:', err);
         }
-      }
-
-      function handleCloseFile() {
-        if (editor.getValue() && !confirm('¿Desea cerrar el archivo? Los cambios no guardados se perderán.')) return;
-        currentFileHandle = null;
-        originalContent = '';
-        editor.setValue('');
-        consoleElement.innerHTML = '';
-        updateFilenameDisplay();
       }
 
       updateFilenameDisplay();
