@@ -214,6 +214,20 @@
       color: #4EC9B0;
       font-style: italic;
     }
+
+    /* Estilos para el resaltado de errores */
+    .cm-lint-error {
+      background: rgba(255, 50, 50, 0.2);
+      border-bottom: 1px solid #ff3232;
+    }
+    .CodeMirror-lint-marker-error {
+      color: #ff3232;
+      font-weight: bold;
+      padding-left: 3px;
+    }
+    .CodeMirror-lint-marker-error:after {
+      content: "!";
+    }
   </style>
 </head>
 
@@ -245,11 +259,12 @@
     <div id="console"></div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.8.2/acorn.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.8.2/acorn-walk.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
-  <!-- Se eliminó la referencia a matchbrackets.min.js para quitar el resaltado -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
@@ -259,6 +274,7 @@
     const SAVE_DELAY = 2000;
     let originalContent = '';
     let filenameDisplay = document.getElementById('filename-display');
+    let lintMarkers = [];
 
     document.addEventListener('DOMContentLoaded', function () {
       const closeBracketsConfig = {
@@ -295,7 +311,8 @@
         tabSize: 4,
         lineWrapping: true,
         autoCloseBrackets: closeBracketsConfig,
-        matchBrackets: false, // Se desactivó el resaltado de brackets aquí
+        matchBrackets: false,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
         extraKeys: {
           'Ctrl-Enter': executeCode,
           'Cmd-Enter': executeCode,
@@ -316,6 +333,68 @@
         }
       });
 
+      function lintEditor() {
+        clearLintMarkers();
+        
+        try {
+          acorn.parse(editor.getValue(), {
+            ecmaVersion: 2022,
+            sourceType: "script"
+          });
+        } catch (err) {
+          if (err instanceof SyntaxError) {
+            const posMatch = err.message.match(/\((\d+):(\d+)\)$/);
+            if (posMatch) {
+              const line = parseInt(posMatch[1]) - 1;
+              const ch = parseInt(posMatch[2]);
+              
+              const marker = editor.markText(
+                {line: line, ch: ch},
+                {line: line, ch: ch + 1},
+                {
+                  className: "cm-lint-error",
+                  attributes: {
+                    title: err.message.replace(/\((\d+):(\d+)\)$/, "")
+                  }
+                }
+              );
+              
+              lintMarkers.push(marker);
+              
+              editor.setGutterMarker(
+                line,
+                "CodeMirror-lint-markers",
+                makeMarker(err.message)
+              );
+            }
+          }
+        }
+      }
+
+      function makeMarker(message) {
+        const marker = document.createElement("div");
+        marker.className = "CodeMirror-lint-marker-error";
+        marker.title = message;
+        return marker;
+      }
+
+      function clearLintMarkers() {
+        lintMarkers.forEach(marker => marker.clear());
+        lintMarkers = [];
+        editor.clearGutter("CodeMirror-lint-markers");
+      }
+
+      let lintTimeout;
+      editor.on('change', () => {
+        debounceSave();
+        updateFilenameDisplay();
+        
+        clearTimeout(lintTimeout);
+        lintTimeout = setTimeout(() => {
+          lintEditor();
+        }, 500);
+      });
+
       function updateFilenameDisplay() {
         if (!currentFileHandle) {
           filenameDisplay.textContent = 'untitled';
@@ -334,18 +413,12 @@
           if (currentFileHandle) {
             try {
               await handleSaveFile();
-              // Se eliminó el console.log que mostraba el mensaje de autoguardado
             } catch (err) {
               console.error('Error en guardado automático:', err);
             }
           }
         }, SAVE_DELAY);
       }
-
-      editor.on('change', () => {
-        debounceSave();
-        updateFilenameDisplay();
-      });
 
       editor.on("mousedown", function (cm, event) {
         if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -476,10 +549,10 @@
           } else {
             const formatArray = (arr, indent = 0) => {
               if (arr.length === 0) return '[]';
-
+              
               const isObjectArray = arr.some(item => typeof item === 'object' && item !== null);
               const isLargeArray = arr.length > 5;
-
+              
               if (isObjectArray || isLargeArray) {
                 const spaces = ' '.repeat(indent + 2);
                 let result = '[\n';
@@ -492,18 +565,18 @@
                 result += '\n' + ' '.repeat(indent) + ']';
                 return result;
               }
-
+              
               return '[' + arr.map(item => JSON.stringify(item)).join(', ') + ']';
             };
 
             const message = args.map(arg => {
               if (arg === undefined) return 'undefined';
               if (arg === null) return 'null';
-
+              
               if (Array.isArray(arg)) {
                 return formatArray(arg);
               }
-
+              
               if (typeof arg === 'object') {
                 const str = JSON.stringify(arg);
                 if (str.length > 60) {
@@ -511,7 +584,7 @@
                 }
                 return str;
               }
-
+              
               return String(arg);
             }).join(' ');
 
