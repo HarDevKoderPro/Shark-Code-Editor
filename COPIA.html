@@ -249,7 +249,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+  <!-- Se eliminó la referencia a matchbrackets.min.js para quitar el resaltado -->
   <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
@@ -295,7 +295,7 @@
         tabSize: 4,
         lineWrapping: true,
         autoCloseBrackets: closeBracketsConfig,
-        matchBrackets: true,
+        matchBrackets: false, // Se desactivó el resaltado de brackets aquí
         extraKeys: {
           'Ctrl-Enter': executeCode,
           'Cmd-Enter': executeCode,
