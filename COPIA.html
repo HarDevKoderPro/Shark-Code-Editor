@@ -278,6 +278,45 @@
     let filenameDisplay = document.getElementById('filename-display');
     let lintMarkers = [];
 
+    // ==============================================
+    // INICIO DE APORTE: Persistencia entre refrescos
+    // ==============================================
+
+    // Clave para almacenar el código en localStorage
+    const LOCAL_STORAGE_KEY = 'sharkCodeEditorContent';
+
+    // Función para guardar el código actual en localStorage
+    function saveToLocalStorage(content) {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, content);
+      } catch (e) {
+        console.warn('No se pudo guardar en localStorage:', e);
+      }
+    }
+
+    // Función para cargar el código desde localStorage
+    function loadFromLocalStorage() {
+      try {
+        return localStorage.getItem(LOCAL_STORAGE_KEY) || '';
+      } catch (e) {
+        console.warn('No se pudo leer de localStorage:', e);
+        return '';
+      }
+    }
+
+    // Función para limpiar el almacenamiento local
+    function clearLocalStorage() {
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      } catch (e) {
+        console.warn('No se pudo limpiar localStorage:', e);
+      }
+    }
+
+    // ============================================
+    // FIN DE APORTE: Persistencia entre refrescos
+    // ============================================
+
     document.addEventListener('DOMContentLoaded', function () {
       const closeBracketsConfig = {
         pairs: "()[]{}''\"\"``",
@@ -335,6 +374,21 @@
         }
       });
 
+      // ==============================================
+      // INICIO DE APORTE: Cargar contenido al iniciar
+      // ==============================================
+
+      // Cargar contenido desde localStorage al iniciar
+      const savedContent = loadFromLocalStorage();
+      if (savedContent) {
+        editor.setValue(savedContent);
+        originalContent = savedContent;
+      }
+
+      // ============================================
+      // FIN DE APORTE: Cargar contenido al iniciar
+      // ============================================
+
       function lintEditor() {
         clearLintMarkers();
 
@@ -390,6 +444,14 @@
       editor.on('change', () => {
         debounceSave();
         updateFilenameDisplay();
+
+        // ==============================================
+        // INICIO DE APORTE: Guardar en localStorage
+        // ==============================================
+        saveToLocalStorage(editor.getValue());
+        // ============================================
+        // FIN DE APORTE: Guardar en localStorage
+        // ============================================
 
         clearTimeout(lintTimeout);
         lintTimeout = setTimeout(() => {
@@ -672,6 +734,15 @@
         editor.setValue('');
         consoleElement.innerHTML = '';
         updateFilenameDisplay();
+
+        // ==============================================
+        // INICIO DE APORTE: Limpiar localStorage al crear nuevo archivo
+        // ==============================================
+        clearLocalStorage();
+        // ============================================
+        // FIN DE APORTE: Limpiar localStorage
+        // ============================================
+
         await handleSaveAsFile();
       }
 
@@ -690,6 +761,14 @@
           originalContent = content;
           editor.setValue(content);
           updateFilenameDisplay();
+
+          // ==============================================
+          // INICIO DE APORTE: Actualizar localStorage al abrir archivo
+          // ==============================================
+          saveToLocalStorage(content);
+          // ============================================
+          // FIN DE APORTE: Actualizar localStorage
+          // ============================================
         } catch (err) {
           if (err.name !== 'AbortError') console.error('Error al abrir archivo:', err);
         }
@@ -704,6 +783,14 @@
           await writable.close();
           originalContent = content;
           updateFilenameDisplay();
+
+          // ==============================================
+          // INICIO DE APORTE: Actualizar localStorage al guardar
+          // ==============================================
+          saveToLocalStorage(content);
+          // ============================================
+          // FIN DE APORTE: Actualizar localStorage
+          // ============================================
         } catch (err) {
           console.error('Error al guardar archivo:', err);
         }
@@ -725,6 +812,14 @@
           currentFileHandle = newHandle;
           originalContent = content;
           updateFilenameDisplay();
+
+          // ==============================================
+          // INICIO DE APORTE: Actualizar localStorage al guardar como
+          // ==============================================
+          saveToLocalStorage(content);
+          // ============================================
+          // FIN DE APORTE: Actualizar localStorage
+          // ============================================
         } catch (err) {
           if (err.name !== 'AbortError') console.error('Error al guardar archivo:', err);
         }
