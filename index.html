@@ -334,7 +334,7 @@
           if (currentFileHandle) {
             try {
               await handleSaveFile();
-              console.log('Guardado automático realizado');
+              // Se eliminó el console.log que mostraba el mensaje de autoguardado
             } catch (err) {
               console.error('Error en guardado automático:', err);
             }
