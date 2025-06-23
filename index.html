@@ -582,15 +582,34 @@
           !code.includes('}');
       }
 
+      // ==============================================
+      // INICIO DE APORTE: Soporte para funciones autoinvocadas
+      // ==============================================
+
+      function isIIFE(code) {
+        // Detectar patrones comunes de IIFE
+        return /^\s*(?:\(\s*function\s*\([^)]*\)\s*\{|function\s*\([^)]*\)\s*\{.*\}\s*\([^)]*\)|\/\*.*\*\/\s*\(\s*function\s*\([^)]*\)\s*\{)/.test(code);
+      }
+
       function transformCode(code) {
+        // Primero manejar prompts
         const safeCode = code.replace(/(?<!await\s)(prompt\s*\(.*?\))/g, 'await $1');
 
         if (isSimpleExpression(code)) {
           return `(function() { try { return ${safeCode} } catch(e) { return e.message } })();`;
-        } else {
+        }
+        else if (isIIFE(code)) {
+          // Si es una IIFE, no la envolvemos en otra función
+          return safeCode;
+        }
+        else {
           return `(async () => { ${safeCode} })();`;
         }
       }
+
+      // ============================================
+      // FIN DE APORTE: Soporte para funciones autoinvocadas
+      // ============================================
 
       function createLogger(type) {
         return function (...args) {
